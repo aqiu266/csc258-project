@@ -47,13 +47,12 @@
 
     \end{enumerate}
 
-    
-
 \begin{figure}[ht!]
     \centering
-    % \includegraphics[width=0.3\textwidth]{name.png}
-    \caption{caption}
-    \label{Instructions}
+    % \includegraphics[width=0.35\textwidth]{static_scene.png}
+    \fbox{\parbox{0.35\textwidth}{\centering Static scene screenshot goes here}}
+    \caption{The static scene: walls, starting bubbles and the player.}
+    \label{fig:static}
 \end{figure}
 
 \item Game Summary:
@@ -97,6 +96,61 @@
 %       help us understand why you deserve marks for 
 %       features that were more challenging than they
 %       might initially seem.
+
+
+\section{Memory Layout}
+
+We store the 14x7 grid row-major as a flat array of words. Each cell holds an integer code (0 for empty, 1–4 for colours) instead of a full RGB value. This saves memory and makes match logic faster by allowing direct integer comparisons, with a helper function translating codes to colours only at draw time.
+
+\subsection{Data section}
+
+\begin{center}
+\begin{tabular}{|l|l|p{0.45\textwidth}|}
+\hline
+Label & Size & Contents \\
+\hline
+\texttt{ADDR\_DSPL}, \texttt{ADDR\_KBRD} & 1 word each & Display and keyboard addresses \\
+\texttt{COLOUR\_*} & 1 word each & RGB values for background, wall, player and the four bubble colours \\
+\texttt{player\_col} & 1 word & Player's column, 0--6 (starts at 3) \\
+\texttt{held\_count} & 1 word & Number of bubbles held \\
+\texttt{held\_colour} & 1 word & Colour code being held (0 = none) \\
+\texttt{grid} & 98 words (392 bytes) & 14 rows $\times$ 7 columns, row-major; 0 = empty, 1--4 = colour \\
+\hline
+\end{tabular}
+\end{center}
+
+Cell (row $r$, column $c$) of \texttt{grid} is at byte offset $(7r + c) \times 4$, with row 0 at the top.
+
+\subsection{Screen layout}
+
+Each unit on the 32 $\times$ 32 display is one word, so unit (row $r$, column $c$) is at address \texttt{0x10008000} $+ 128r + 4c$.
+
+\begin{center}
+\begin{tabular}{|l|l|l|}
+\hline
+Element & Unit rows & Unit columns \\
+\hline
+Walls & 1--17 & 1 and 9 (plus all of rows 1 and 17) \\
+Bubble grid & 2--15 & 2--8 \\
+Player & 16 & \texttt{player\_col} + 2 \\
+Held bubbles & 18 and below & \texttt{player\_col} + 2 \\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=0.8\textwidth]{layout_diagram.png}
+    \caption{Screen layout plan on a 32 $\times$ 32 unit grid.}
+    \label{fig:layout}
+\end{figure}
+
+\begin{figure}[ht!]
+    \centering
+    \includegraphics[width=0.6\textwidth]{memory.png}
+    \caption{The \texttt{grid} array in memory, laid out according to the plan above.}
+    \label{fig:memory}
+\end{figure}
 
 
 \end{document}
