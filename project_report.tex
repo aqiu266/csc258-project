@@ -1,0 +1,102 @@
+\documentclass{article}
+
+%% Page Margins %%
+\usepackage{geometry}
+\geometry{
+    top = 0.75in,
+    bottom = 0.75in,
+    right = 0.75in,
+    left = 0.75in,
+}
+
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{parskip}
+
+\title{Assembly Project: Magical Drop}
+
+% TODO: Enter your name
+\author{Andrew & Selena}
+
+\begin{document}
+\maketitle
+
+\section{Instruction and Summary}
+
+\begin{enumerate}
+
+    \item Which milestones were implemented? 
+    % TODO: List the milestone(s) and in the case of 
+    %       Milestones 4 & 5, list what features you 
+    %       implemented, sorted into easy and hard 
+    %       categories.
+    
+    Milestones 1, 2, and 3 were implemented.
+
+    \item How to view the game:
+    % TODO: specify the pixes/unit, width and height of 
+    %       your game, etc.  NOTE: list these details in
+    %       the header of your breakout.asm file too!
+    
+    \begin{enumerate}
+
+    \item Unit width and Unit height: 16 pixels
+    \item Display width and Display height: 512 x 512 pixels
+    \item Base Address for Display:   0x10008000 (\$gp)
+
+
+    \end{enumerate}
+
+    
+
+\begin{figure}[ht!]
+    \centering
+    % \includegraphics[width=0.3\textwidth]{name.png}
+    \caption{caption}
+    \label{Instructions}
+\end{figure}
+
+\item Game Summary:
+% TODO: Tell us a little about your game.
+\begin{itemize}
+\item The playing field is grid of bubbles with 7 columns and 14 rows in 4 colours (red, blue, yellow, green). New rows push the bubbles down from the top.
+\item The player moves along the bottom with keys $a$ and $d$. The player grabs a run of same-coloured bubbles from the column above with $s$, and throws them back up with $w$. Three or more of one colour in a column are removed. Pressing $q$ quits the game.
+\end{itemize}
+
+    
+\end{enumerate}
+
+\section{Attribution Table}
+% TODO: If you worked in partners, tell us who was 
+%       responsible for which features. Some reweighting 
+%       might be possible in cases where one group member
+%       deserves extra credit for the work they put in.
+
+\begin{center}
+\begin{tabular}{|| c | c ||}
+\hline
+ Selena (1011874786) &  Student 2 (Name and student number) \\ 
+ \hline
+ Bitmap display configuration and memory layout & Random grid fill\\
+ \hline
+ Game loop: key polling, quit (q), sleep & Left/right movement with edge limits\\
+ \hline
+ Background and wall drawing & Grab (s) and throw (w)\\ 
+ \hline
+ Grid, player, and held-bubble drawing & New row every 10 keystrokes\\ 
+ \hline
+ Per-frame redraw & Matching and removal, game over\\
+ \hline
+\end{tabular}
+\end{center}
+
+% TODO: Fill out the remainder of the document as you see 
+%       fit, including as much detail as you think 
+%       necessary to better understand your code. 
+%       You can add extra sections and subsections to 
+%       help us understand why you deserve marks for 
+%       features that were more challenging than they
+%       might initially seem.
+
+
+\end{document}
