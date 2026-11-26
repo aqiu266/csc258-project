@@ -50,6 +50,15 @@ grid:
 .eqv GRID_COLS 7
 .eqv GRID_ROWS 14
 .eqv UNIT_BYTES 4
+.eqv ROW_BYTES  128            # 32 units * 4 bytes per unit
+.eqv CHAR_ROW   16             # Character row
+.eqv HELD_ROW   18             # Starting row for held bubbles
+.eqv WALL_LEFT  1              # Left wall column
+.eqv WALL_RIGHT 9              # Right wall column
+.eqv WALL_TOP   1              # Top wall row
+.eqv WALL_BOT   17             # Bottom wall row
+.eqv SCREEN_OFFSET_X 2         # Grid col 0 is at screen col 2
+.eqv SCREEN_OFFSET_Y 2         # Grid row 0 is at screen row 2
 
 ##############################################################################
 # Code
@@ -119,11 +128,14 @@ after_input:
     # 5. Go back to Step 1
     j game_loop
 
-
 ##############################################################################
-# (everything after here is done)
+# Drawing Functions
 ##############################################################################
 
+# draw_all: Redraws all dynamic elements (character, grid, held bubbles).
+# Reads: player_col, held_count, held_colour, grid
+# Note: Overwrites temporary registers ($t0-$t9). 
+#       Save any important values to memory before calling this.
 draw_all:
     addi $sp, $sp, -4
     sw   $ra, 0($sp)
@@ -137,6 +149,8 @@ draw_all:
     addi $sp, $sp, 4
     jr   $ra
 
+# draw_background: Fills the entire screen with the background colour.
+# Note: Overwrites $t0-$t3.
 draw_background:
     lw   $t0, ADDR_DSPL
     lw   $t1, COLOUR_BG
@@ -150,94 +164,108 @@ bg_loop:
     bgtz $t2, bg_loop
     jr   $ra
 
+# draw_walls: Draws the grey playfield border (top, bottom, left, right).
+# Note: Overwrites $t0-$t5.
 draw_walls:
     lw   $t0, ADDR_DSPL
     lw   $t1, COLOUR_WALL
-    li   $t2, 1
+    li   $t2, WALL_TOP
+    # left wall: $t2 = current row, $t3 = byte offset
     
 lw_loop:
-    sll  $t3, $t2, 7
-    addi $t3, $t3, 4
+    sll  $t3, $t2, 7               # row * ROW_BYTES
+    addi $t3, $t3, 4               # left wall col (1) * 4
     add  $t4, $t0, $t3
     sw   $t1, 0($t4)
     addi $t2, $t2, 1
-    li   $t5, 18
+    li   $t5, 18                   # stop after bottom wall row (17)
     blt  $t2, $t5, lw_loop
-    li   $t2, 1
+    li   $t2, WALL_TOP
+    # Right wall: $t2 = current row, $t3 = byte offset
     
 rw_loop:
-    sll  $t3, $t2, 7
-    addi $t3, $t3, 36
+    sll  $t3, $t2, 7               # row * ROW_BYTES
+    addi $t3, $t3, 36              # right wall col (9) * 4
     add  $t4, $t0, $t3
     sw   $t1, 0($t4)
     addi $t2, $t2, 1
-    li   $t5, 18
+    li   $t5, 18                   # stop after bottom wall row (17)
     blt  $t2, $t5, rw_loop
-    li   $t2, 1
+    li   $t2, WALL_LEFT
+    # Top wall: $t2 = current col, $t3 = byte offset
     
 top_loop:
-    li   $t3, 128
-    sll  $t4, $t2, 2
+    li   $t3, 128                  # top wall row (1) * 128
+    sll  $t4, $t2, 2               # col * 4
     add  $t3, $t3, $t4
     add  $t4, $t0, $t3
     sw   $t1, 0($t4)
     addi $t2, $t2, 1
-    li   $t5, 10
+    li   $t5, 10                   # stop after right wall col (9)
     blt  $t2, $t5, top_loop
-    li   $t2, 1
+    li   $t2, WALL_LEFT
+    # Bottom wall: $t2 = current col, $t3 = byte offset
 
 bot_loop:
-    li   $t3, 2176
-    sll  $t4, $t2, 2
+    li   $t3, 2176                 # bottom wall row (17) * 128
+    sll  $t4, $t2, 2               # col * 4
     add  $t3, $t3, $t4
     add  $t4, $t0, $t3
     sw   $t1, 0($t4)
     addi $t2, $t2, 1
-    li   $t5, 10
+    li   $t5, 10                   # stop after right wall col (9)
     blt  $t2, $t5, bot_loop
-
     jr   $ra
 
+# clear_dynamic: Erases the character row and the held bubble area to 
+# prevent trails when the character moves.
+# Note: Overwrites $t0-$t7.
 clear_dynamic:
     lw   $t0, ADDR_DSPL
     lw   $t1, COLOUR_BG
-    li   $t2, 16
-    sll  $t2, $t2, 7
-    li   $t3, 2
+    li   $t2, CHAR_ROW
+    sll  $t2, $t2, 7               # row * ROW_BYTES
+    li   $t3, SCREEN_OFFSET_X
+    # Character row: $t3 = current col
     
 cd_char_loop:
-    sll  $t4, $t3, 2
+    sll  $t4, $t3, 2               # col * 4
     add  $t4, $t2, $t4
     add  $t4, $t0, $t4
     sw   $t1, 0($t4)
     addi $t3, $t3, 1
-    li   $t5, 9
+    li   $t5, 9                    # stop before right wall (9)
     blt  $t3, $t5, cd_char_loop
-    li   $t7, 2
+    li   $t7, SCREEN_OFFSET_X
+    # Held region: $t7 = current column, $t2 = current row
     
 cd_col_loop:
-    li   $t2, 18      
+    li   $t2, HELD_ROW           
     
 cd_row_loop:
-    sll  $t4, $t2, 7
-    sll  $t6, $t7, 2
+    sll  $t4, $t2, 7               # row * ROW_BYTES
+    sll  $t6, $t7, 2               # col * 4
     add  $t4, $t4, $t6
     add  $t4, $t0, $t4
     sw   $t1, 0($t4)
     addi $t2, $t2, 1
-    li   $t5, 32
+    li   $t5, 32                   # last screen row + 1
     blt  $t2, $t5, cd_row_loop
     addi $t7, $t7, 1
-    li   $t5, 9
+    li   $t5, 9                    # stop before right wall (9)
     blt  $t7, $t5, cd_col_loop
     jr   $ra
 
+# draw_grid: Iterates through the 14x7 grid array and draws each bubble.
+# Calls colour_lookup.
+# Note: Overwrites $t0-$t9.
 draw_grid:
     addi $sp, $sp, -4
     sw   $ra, 0($sp)
     la   $t0, grid
     li   $t1, 0
-
+    # $t1 = grid row, $t2 = grid col
+    
 dg_row_loop:
     li   $t2, 0
     
@@ -251,15 +279,15 @@ dg_col_loop:
     jal  colour_lookup 
     move $t5, $v0
 
-    addi $t6, $t1, 2
-    addi $t7, $t2, 2
-    sll  $t8, $t6, 7
-    sll  $t9, $t7, 2
+    addi $t6, $t1, SCREEN_OFFSET_Y
+    addi $t7, $t2, SCREEN_OFFSET_X
+    sll  $t8, $t6, 7               # screen_row * ROW_BYTES
+    sll  $t9, $t7, 2               # screen_col * 4
     add  $t8, $t8, $t9
     lw   $t9, ADDR_DSPL
     add  $t8, $t9, $t8
     sw   $t5, 0($t8)
-
+    
     addi $t2, $t2, 1
     blt  $t2, GRID_COLS, dg_col_loop
     addi $t1, $t1, 1
@@ -269,19 +297,26 @@ dg_col_loop:
     addi $sp, $sp, 4
     jr   $ra
 
+# draw_player: Draws the white character square at its current column.
+# Reads: player_col
+# Note: Overwrites $t0-$t5.
 draw_player:
     lw   $t0, ADDR_DSPL
     lw   $t1, COLOUR_PLAYER
     lw   $t2, player_col
-    addi $t2, $t2, 2
-    li   $t3, 16
-    sll  $t4, $t3, 7
-    sll  $t5, $t2, 2
+    addi $t2, $t2, SCREEN_OFFSET_X
+    li   $t3, CHAR_ROW
+    sll  $t4, $t3, 7               # screen_row * ROW_BYTES
+    sll  $t5, $t2, 2               # screen_col * 4
     add  $t4, $t4, $t5
     add  $t4, $t0, $t4
     sw   $t1, 0($t4)
     jr   $ra
 
+# draw_held: Draws the held bubbles below the character.
+# Reads: held_count, held_colour, player_col
+# Calls colour_lookup_from_held.
+# Note: Overwrites $t0-$t7.
 draw_held:
     addi $sp, $sp, -4
     sw   $ra, 0($sp)
@@ -294,12 +329,14 @@ draw_held:
 
     lw   $t3, ADDR_DSPL
     lw   $t4, player_col
-    addi $t4, $t4, 2
-    li   $t5, 18
+    addi $t4, $t4, SCREEN_OFFSET_X
+    li   $t5, HELD_ROW
+
+    # $t5 = current screen row to draw
 
 dh_loop:
-    sll  $t6, $t5, 7
-    sll  $t7, $t4, 2
+    sll  $t6, $t5, 7               # screen_row * ROW_BYTES
+    sll  $t7, $t4, 2               # screen_col * 4
     add  $t6, $t6, $t7
     add  $t6, $t3, $t6
     sw   $t2, 0($t6)
@@ -312,6 +349,11 @@ dh_done:
     addi $sp, $sp, 4
     jr   $ra
 
+# colour_lookup: Maps a bubble code (0-4) to its display colour.
+# Code 0 returns black, so empty grid cells are erased automatically.
+# INPUT: $t4 (bubble code)
+# OUTPUT: $v0 (colour word)
+# Note: Overwrites $v0 and $t5.
 colour_lookup:
     li   $v0, 0
     li   $t5, 1
@@ -337,6 +379,8 @@ cl_blue:
     lw   $v0, COLOUR_BLUE
     jr   $ra
 
+# colour_lookup_from_held: Fetches held_colour and passes it to colour_lookup.
+# Note: Overwrites $t4, $v0, $t5.
 colour_lookup_from_held:
     lw   $t4, held_colour
     j    colour_lookup
