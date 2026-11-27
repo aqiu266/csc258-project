@@ -68,9 +68,27 @@ grid:
 
     # Run the game.
 main:
-    # TODO (Andrew): initialise the grid with starting rows of bubbles.
+    # Initialise bottom 4 rows of the grid with random bubbles (codes 1-4)
+    la   $t0, grid
+    li   $t1, 0    
+init_loop:
+    li   $t2, 56
+    bge  $t1, $t2, init_done
 
-    # Draw the static frame once at start-up.
+    li   $v0, 42
+    li   $a0, 0
+    li   $a1, 4
+    syscall
+    addi $a0, $a0, 1
+
+    sll  $t3, $t1, 2
+    add  $t3, $t0, $t3
+    sw   $a0, 0($t3)
+
+    addi $t1, $t1, 1
+    j    init_loop
+
+init_done:
     jal  draw_background
     jal  draw_walls
 
