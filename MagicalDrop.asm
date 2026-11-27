@@ -2,7 +2,7 @@
 # This file contains our implementation of Magical Drop.
 #
 # Student 1: Selena (Student Number: 1011874786)
-# Student 2: Andrew (Student Number: )
+# Student 2: Andrew (Student Number: 1012021848)
 #
 # We assert that the code submitted here is entirely our own 
 # creation, and will indicate otherwise when it is not.
@@ -69,6 +69,7 @@ grid:
     # Run the game.
 main:
     # TODO (Andrew): initialise the grid with starting rows of bubbles.
+    
 
     # Draw the static frame once at start-up.
     jal  draw_background
@@ -97,10 +98,18 @@ handle_key:
     j    after_input
 
 key_left:
-    # TODO (Andrew): bounds check + decrement player_col
+    lw   $t0, player_col
+    blez $t0, after_input
+    addi $t0, $t0, -1
+    sw $t0, player_col
     j    after_input
 key_right:
-    # TODO (Andrew): bounds check + increment player_col
+    lw   $t0, player_col
+    li   $t1, GRID_COLS
+    addi $t1, $t1, -1
+    bge  $t0, $t1, after_input
+    addi $t0, $t0, 1
+    sw   $t0, player_col
     j    after_input
 key_grab:
     # TODO (Andrew): grab chain from column above player
